@@ -1,5 +1,5 @@
 # requests
-[![Gitee link address](https://img.shields.io/badge/gitee-reference-red?logo=gitee&logoColor=red&labelColor=white)](https://gitee.com/leegene/requests)[![Github link address](https://img.shields.io/badge/github-reference-blue?logo=github&logoColor=black&labelColor=white&color=black)](https://github.com/wangluozhe/requests)[![Go Version](https://img.shields.io/badge/Go%20Version-1.24.0-blue?logo=go&logoColor=white&labelColor=gray)]()[![Release Version](https://img.shields.io/badge/release-v1.5.2-blue)]()[![go documentation](https://img.shields.io/badge/go-documentation-blue)](https://pkg.go.dev/github.com/wangluozhe/requests)[![license GPL-3.0](https://img.shields.io/badge/license-GPL3.0-orange)](https://github.com/wangluozhe/requests/blob/main/LICENSE)
+[![Github link address](https://img.shields.io/badge/github-Helel1%2Frequests-blue?logo=github&logoColor=black&labelColor=white&color=black)](https://github.com/Helel1/requests)[![Go Version](https://img.shields.io/badge/Go%20Version-1.24.0-blue?logo=go&logoColor=white&labelColor=gray)](go.mod)[![license GPL-3.0](https://img.shields.io/badge/license-GPL3.0-orange)](./LICENSE)
 
 > **维护说明 / Maintenance notice**
 >
@@ -28,11 +28,6 @@ requests支持以下新特性：
 5. 支持修改http2指纹
 
 **此模块参考于Python的[requests模块](https://github.com/psf/requests/tree/main/requests)**
-
-
-## 加入微信群聊
-如果你想跟更多志同道合的人一起学习，那么加入群聊来吧！(备注：加群)
-![微信群聊](./imgs/wechat.jpg)
 
 
 ## 下载requests库
