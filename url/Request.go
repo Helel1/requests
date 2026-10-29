@@ -102,6 +102,10 @@ type Request struct {
 	Verify         *bool // nil 表示使用 Session 默认值，使用 url.Bool(true/false) 显式设置
 	Cert           []string
 	Stream         bool
+	// IsolatedCookies 让本次请求只使用请求自带的 cookie：既不合并也不回写
+	// Session.Cookies。DLL 调用方（Python）每请求都传入完整 cookie 状态，
+	// 需要这个模式；原生 Go Session 的持久 cookie 行为不受影响。
+	IsolatedCookies bool
 	Ja3            string
 	RandomJA3      *bool // nil 表示使用 Session 默认值，使用 url.Bool(true/false) 显式设置
 	ForceHTTP1     *bool // nil 表示使用 Session 默认值，使用 url.Bool(true/false) 显式设置

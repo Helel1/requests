@@ -19,6 +19,8 @@ type Request struct {
 	Body    io.Reader
 	Json    any
 	Auth    []string
+	// IsolatedCookies 见 url.Request.IsolatedCookies。
+	IsolatedCookies bool
 }
 
 func (req *Request) Prepare() *PrepareRequest {

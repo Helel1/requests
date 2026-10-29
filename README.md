@@ -1,6 +1,24 @@
 # requests
 [![Gitee link address](https://img.shields.io/badge/gitee-reference-red?logo=gitee&logoColor=red&labelColor=white)](https://gitee.com/leegene/requests)[![Github link address](https://img.shields.io/badge/github-reference-blue?logo=github&logoColor=black&labelColor=white&color=black)](https://github.com/wangluozhe/requests)[![Go Version](https://img.shields.io/badge/Go%20Version-1.24.0-blue?logo=go&logoColor=white&labelColor=gray)]()[![Release Version](https://img.shields.io/badge/release-v1.5.2-blue)]()[![go documentation](https://img.shields.io/badge/go-documentation-blue)](https://pkg.go.dev/github.com/wangluozhe/requests)[![license GPL-3.0](https://img.shields.io/badge/license-GPL3.0-orange)](https://github.com/wangluozhe/requests/blob/main/LICENSE)
 
+> **维护说明 / Maintenance notice**
+>
+> 本仓库是 [`Helel1/requests`](https://github.com/Helel1/requests)，fork 自上游
+> [`wangluozhe/requests`](https://github.com/wangluozhe/requests)，基线 commit 为
+> `46ef52bb8356b38d2e3acf496cec3b7f9bc04a95`。
+>
+> 本 fork 由 **Helel1** 维护，用途单一：为 Python 包
+> [`requests-go`](https://github.com/Helel1/requests-go) 提供 Linux amd64 内核
+> （`go build -buildmode=c-shared libs_dist/export.go`）。相对基线的改动集中在会话与
+> 连接池生命周期（幂等关闭、异常路径释放）、错误路径上的内存回收，以及 Cookie 与
+> Header 解析的边界处理。
+>
+> 许可证与版权不变：仍为 GPL-3.0（见 `LICENSE`），版权归原作者所有。
+>
+> **注意**：本仓库不是新的 `go get` 模块路径。`go.mod` 的 module path 仍是
+> `github.com/wangluozhe/requests`，下文 `go get github.com/wangluozhe/requests`
+> 等安装说明针对上游项目。
+
 requests支持以下新特性：
 
 1. 支持http2，默认以http2进行连接，连接失败后会进行退化而进行http1.1连接

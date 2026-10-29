@@ -8,6 +8,11 @@ import (
 // 解析URL
 func Parse(rawurl string) (*URL, error) {
 	p, err := url.Parse(rawurl)
+	if err != nil {
+		// 解析失败时 p 为 nil，不能拼 URL；把错误交给调用方（Prepare_url 等
+		// 会检查并返回），否则这里就是一次空指针崩溃。
+		return nil, err
+	}
 	return &URL{
 		Scheme:      p.Scheme,
 		User:        p.User,

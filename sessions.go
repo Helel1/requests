@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/andybalholm/brotli"
@@ -54,10 +55,15 @@ func default_headers() *http.Header {
 
 // 合并cookies
 func merge_cookies(rawurl string, cookieJar *cookiejar.Jar, cookie *cookiejar.Jar) {
-	urls, _ := url2.Parse(utils.EncodeURI(rawurl))
-
 	// 防止因为传入 nil 对象导致程序崩溃
 	if cookieJar == nil || cookie == nil {
+		return
+	}
+
+	urls, err := url2.Parse(utils.EncodeURI(rawurl))
+	if err != nil || urls == nil {
+		// URL 解析不出 host 时没有可匹配的 cookie 域；cookiejar 对 nil URL
+		// 会解引用崩溃，而调用方随后本来就会因无效 URL 返回错误。
 		return
 	}
 
@@ -256,6 +262,40 @@ type Session struct {
 	transport      *http.Transport
 	transportCache map[string]*http.Transport
 	cacheLock      sync.Mutex
+	closed         atomic.Bool // Close() 后置位，只用于幂等与“会话已关闭”判定
+}
+
+// CloseIdleConnections 关闭会话已缓存 transport 的空闲连接。
+// 进行中的请求不受影响（chttp 的 CloseIdleConnections 不打断 in-use 连接）。
+// 基础 transport 只是 Clone 的模板，从不承载请求，因此无需清理。
+func (s *Session) CloseIdleConnections() {
+	s.cacheLock.Lock()
+	transports := make([]*http.Transport, 0, len(s.transportCache))
+	for _, tr := range s.transportCache {
+		if tr != nil {
+			transports = append(transports, tr)
+		}
+	}
+	s.cacheLock.Unlock()
+
+	// 锁外清理：不持 cacheLock 做可能阻塞的收尾工作。
+	for _, tr := range transports {
+		tr.CloseIdleConnections()
+	}
+}
+
+// Close 释放会话持有的连接资源并标记会话已关闭。重复调用是幂等的。
+// 已返回的响应/流仍可读；它们自己的连接会在读完/关闭后再被清理。
+func (s *Session) Close() {
+	if s.closed.Swap(true) {
+		return
+	}
+	s.CloseIdleConnections()
+}
+
+// IsClosed 报告会话是否已 Close。
+func (s *Session) IsClosed() bool {
+	return s.closed.Load()
 }
 
 // Use 添加中间件
@@ -279,7 +319,9 @@ func (s *Session) Prepare_request(request *models.Request) (*models.PrepareReque
 	}
 	cookies, _ := cookiejar.New(nil)
 	merge_cookies(request.Url, cookies, c)
-	merge_cookies(request.Url, cookies, s.Cookies)
+	if !request.IsolatedCookies {
+		merge_cookies(request.Url, cookies, s.Cookies)
+	}
 	auth := merge_setting(request.Auth, s.Auth).([]string)
 	p := models.NewPrepareRequest()
 	err = p.Prepare(
@@ -306,16 +348,17 @@ func (s *Session) Request(method, rawurl string, request *url.Request) (*models.
 		request = url.NewRequest()
 	}
 	req := &models.Request{
-		Method:  strings.ToUpper(method),
-		Url:     rawurl,
-		Params:  request.GetParams(),
-		Headers: request.GetHeaders(),
-		Cookies: request.GetCookies(rawurl),
-		Data:    request.GetData(),
-		Files:   request.GetFiles(),
-		Json:    request.Json,
-		Body:    request.GetBody(),
-		Auth:    request.Auth,
+		Method:          strings.ToUpper(method),
+		Url:             rawurl,
+		Params:          request.GetParams(),
+		Headers:         request.GetHeaders(),
+		Cookies:         request.GetCookies(rawurl),
+		Data:            request.GetData(),
+		Files:           request.GetFiles(),
+		Json:            request.Json,
+		Body:            request.GetBody(),
+		Auth:            request.Auth,
+		IsolatedCookies: request.IsolatedCookies,
 	}
 	preq, err := s.Prepare_request(req)
 	if err != nil {
@@ -406,7 +449,12 @@ func (s *Session) Send(preq *models.PrepareRequest, req *url.Request) (*models.R
 	// 设置http2
 	http2Settings := merge_setting(req.HTTP2Settings, s.HTTP2Settings).(*http.HTTP2Settings)
 	if http2Settings != nil && http2Settings.HeadersID == 0 {
-		http2Settings.HeadersID = 1
+		// 只在局部副本上补默认值：merge_setting 在 req 未设置时直接返回
+		// s.HTTP2Settings 指针，写它就是写共享的会话字段（并发写竞态）。
+		// 副本只改标量 HeadersID，切片/指针字段仍只读共享。
+		withDefault := *http2Settings
+		withDefault.HeadersID = 1
+		http2Settings = &withDefault
 	}
 
 	// --- 缓存逻辑开始 ---
@@ -665,7 +713,7 @@ func (s *Session) buildResponse(resp *http.Response, preq *models.PrepareRequest
 	}
 
 	// 更新 Cookies
-	if resp.Cookies() != nil {
+	if req != nil && !req.IsolatedCookies && resp.Cookies() != nil {
 		u, _ := url2.Parse(preq.Url)
 		s.Cookies.SetCookies(u, resp.Cookies())
 	}

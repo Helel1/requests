@@ -67,7 +67,7 @@ func parseMapCookies(cookies map[string]interface{}) []*http.Cookie {
 }
 
 func ParseCookies(rawurl string, cookies interface{}) *cookiejar.Jar {
-	urls, _ := url.Parse(rawurl)
+	urls, err := url.Parse(rawurl)
 	jar := NewCookies()
 	var cookieList []*http.Cookie
 
@@ -84,6 +84,11 @@ func ParseCookies(rawurl string, cookies interface{}) *cookiejar.Jar {
 		cookieList = parseMapCookies(v)
 	}
 
+	if err != nil || urls == nil {
+		// URL 解析不出 host 时没有可匹配的 cookie 域（且 cookiejar 对 nil URL
+		// 会崩溃）；调用方随后会因无效 URL 返回错误。
+		return jar
+	}
 	jar.SetCookies(urls, cookieList)
 	return jar
 }
